@@ -1,0 +1,1 @@
+Windows Defender evasion и BYOVD: внедрение собственного подписанного драйвера для доступа к ядру и последующей privilege escalation.

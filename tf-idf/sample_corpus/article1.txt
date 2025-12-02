@@ -1,0 +1,1 @@
+Privilege escalation through a vulnerable driver that bypasses EDR controls. Researchers note Cobalt Strike usage and NTLM relay attempts against Active Directory controllers.
