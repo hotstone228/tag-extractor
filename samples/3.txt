@@ -1,0 +1,742 @@
+HomeAbout usArticlesTRU EventsAcronis.com
+
+Select
+Select
+November 19, 2025  —  Acronis Threat Research Unit
+Cooking up trouble: How TamperedChef uses signed apps to deliver stealthy payloads
+Share
+twitter
+facebook
+linkedin
+reddit
+Authors: Darrel Virtusio, Jozsef Gegeny
+
+Summary
+Acronis Threat Research Unit (TRU) observed a global malvertising / SEO campaign, tracked as “TamperedChef.” It delivers legitimate-looking installers that disguise as common applications to trick users into installing them, establish persistence and deliver obfuscated JavaScript payloads for remote access and control.
+The operator(s) rely on social engineering by using everyday application names, malvertising, Search Engine Optimization (SEO) and abused digital certificates that aim to increase user trust and evade security detection.
+This variant marks a shift to using a dropped XML file that configures a scheduled task to fetch and execute the obfuscated JavaScript payload.
+TamperedChef operates with an industrialized and business-like infrastructure, relying on a network of U.S.-registered shell companies to acquire and rotate code-signing certificates.
+Acronis' telemetry shows higher activity in the Americas, though the infrastructure and samples are globally distributed and not tied to any specific industry. Most affected victims come from health care, construction and manufacturing sectors. This is likely because users in these industries may often search online for product manuals of highly specialized equipment, which is one of the behaviors the TamperedChef campaign exploits.
+The campaign likely serves multiple financially or strategically motivated purposes, including establishing and selling remote access for profit, stealing and monetizing sensitive credentials and data (particularly in healthcare), preparing compromised systems for future ransomware deployment, and engaging in opportunistic espionage by exploiting access to high-value targets.
+Campaign overview: Signed Applications, SEO abuse, and global reach
+Recently, TRU observed a global campaign targeting organizations across various sectors. The attackers distribute seemingly legitimate software featuring full functionality and valid code signing to trick end users into executing them. These fake applications imitate commonly used software such as browsers, PDF editors, manual readers and even games, adding another layer of authenticity that makes it harder for users to detect their malicious intent. Additionally, trojans disguised as these familiar programs are more likely to earn users’ trust, since they mimic tools widely used for everyday tasks.
+
+Figure 1. Bing search results leading to a TamperedChef-controlled download site
+Our investigation into this campaign began in June 2025, but evidence indicates signs of earlier activity, suggesting the operation had been active for some time before detection. The widespread distribution of fake applications spans across multiple regions and industries. This means that the threat actors behind this campaign are not targeting a specific organization but instead going after a wide range of vulnerable targets.
+
+The behavior we observed in this campaign aligns with the findings previously reported by other security vendors. However, our analysis uncovered a variation of the kill chain that, while distinct from earlier reports, maintains a consistent pattern of fake signed application distribution, persistence and JavaScript payload execution, as detailed in this blog.
+
+Victimology
+Acronis' telemetry shows that most victims associated with this campaign are in the Americas, with roughly 80% in the United States and the remaining 20% spread across other countries. While this geographic distribution highlights a concentration of activity among U.S.-based users, it more likely reflects the campaign’s global reach rather than deliberate targeting of a single geographic region.
+
+Figure 2. Countries affected by this campaign
+In terms of affected industries, telemetry data shows victims across multiple industries, but  a clear concentration on health care, construction and manufacturing. These industries appear especially vulnerable to this type of campaign, likely due to their reliance on highly specialized and technical equipment, which often prompts users to search online for product manuals — one of the behaviors exploited by the TamperedChef campaign. Additionally, it is often difficult for users to find manuals in their native language (most are in English), which may help explain why the Americas stand out as a primary victim region.
+
+Figure 3. Industries affected by this campaign
+Inside TamperedChef’s kitchen
+During our investigation, we identified multiple fake applications being distributed under convincing product names. Each fake application presents itself as a fully functional application and carries a valid signature from different companies, which adds credibility and helps evade detection. Examples of observed fake applications include:
+
+All Manuals Reader
+Master Chess
+Manual Reader Pro
+JustAskJacky
+Total User Manual
+Any Product Manual
+Figure 4. Webpage of hxxps://anyproductmanual[.]com/
+This approach is a form of social engineering: Users see a seemingly legitimate application name that they might use daily, increasing trust and making them more likely to install and run the software.
+
+Infrastructure
+The infrastructure behind these fake applications follows a distinct format. The download sites are named similarly to the fake applications themselves, typically using “download” as subdomain. The naming convention makes the domains appear legitimate at a glance, which helps trick users into downloading and running the malicious installers.
+
+Download URL
+Registrar
+Create / Expiry date
+Registrant country
+download[.]allmanualsreader[.]com
+NameCheap, Inc.
+01/15/2025 - 01/15/2026
+Iceland
+download[.]playthechess[.]com
+NameCheap, Inc.
+03/26/2025 - 03/26/2026
+Iceland
+download[.]manualreaderpro[.]com
+NameCheap, Inc.
+06/08/2025 - 06/08/2026
+Iceland
+download[.]justaskjacky[.]com
+NameCheap, Inc.
+06/10/2025 - 06/10/2026
+Iceland
+download[.]totalusermanuals[.]com
+NameCheap, Inc.
+08/28/2025 - 08/28/2026
+Iceland
+download[.]anyproductmanual[.]com
+NameCheap, Inc.
+09/06/2025 - 09/06/2026
+Iceland
+Download URL WHOIS information
+
+Early command and control (C2) servers used in the campaigns also follow a distinct format, consisting of domain-generated strings that appear random. However, the latest known C2 servers shifted to a more recognizable domain name, likely to blend in with normal network traffic and avoid suspicion.
+
+C2 Server
+Registrar
+Create / Expiry Date
+Registrant Country
+api[.]78kwijczjz0mcig0f0[.]com
+NameCheap, Inc.
+03/25/2025 - 03/25/2026
+Iceland
+api[.]zxg4jy1ssoynji24po[.]com
+NameCheap, Inc.
+04/07/2025 - 04/07/2026
+Iceland
+api[.]cjby76nlcynrc4jvrb[.]com
+NameCheap, Inc.
+06/17/2025 - 06/17/2026
+Iceland
+api[.]vtqgo0729ilnmyxs9q[.]com
+NameCheap, Inc.
+06/10/2025 - 06/10/2026
+Iceland
+get[.]latest-manuals[.]com
+NameCheap, Inc.
+08/29/2025 - 08/29/2026
+Iceland
+app[.]catalogreference[.]com
+NameCheap, Inc.
+09/06/2025 - 09/06/2026
+Iceland
+C2 servers WHOIS information
+
+The infrastructure analysis reveals a deliberate, business-like strategy by the threat actors. They consistently rely on NameCheap for domain registration and use domain privacy protection services to hide ownership, with both the download and command and control domains registered for only one year. This short registration period allows them to quickly rebuild infrastructure following takedowns. The listed registrant country (Iceland) originates from the privacy provider and does not reflect the operators’ true location.
+
+Hiding behind shell companies and abused certificates
+Figure 5. TamperedChef’s shell company and infrastructure workflow
+TamperedChef operates with an industrialized and business-like infrastructure, relying on a network of U.S.-registered shell companies to acquire and rotate code-signing certificates. These entities — often limited liability companies (LLCs) registered through mail forwarding or agent services — serve as disposable fronts for obtaining Extended Validation (EV) certificates, which are then used to sign fake but fully functional applications.
+
+Signature
+Country
+Address
+Agent name
+App Interplace LLC
+US
+Kent, DE
+NORTHWEST REGISTERED AGENT SERVICE, INC
+Performance Peak Media LLC
+US
+1309 Coffeen Avenue STE 17793, Sheridan, Wyoming, 82801
+Company Sage Agents LLC
+Pixel Catalyst Media LLC
+US
+Kent, DE
+NORTHWEST REGISTERED AGENT SERVICE, INC
+Native Click Marketing LLC
+US
+Kent, DE
+NORTHWEST REGISTERED AGENT SERVICE, INC
+Fusion Core Reach LLC
+US
+Kent, DE
+NORTHWEST REGISTERED AGENT SERVICE, INC
+Unified Market Group LLC
+US
+1309 Coffeen Avenue STE 17793, Sheridan, Wyoming, 82801
+Company Sage Agents LLC
+Data of opencorporates.com
+
+Once a certificate is revoked or flagged, TamperedChef operators quickly register a new shell company under a different but similarly generic “Digital Marketing” name, acquire a fresh certificate and re-sign the installers. This process allows the campaign to maintain continuous trust exploitation, keeping malicious software appearing legitimate even as prior identities are dismantled. 
+
+Certificate
+Validity
+Status
+Native Click Marketing LLC
+11/28/2024 - 11/28/2027
+Revoked
+Pixel Catalyst Media LLC
+01/17/2025 - 01/17/2028
+Revoked
+App Interplace LLC
+01/22/2025 - 01/22/2028
+Revoked
+Fusion Core Reach LLC
+03/14/2025 - 03/14/2026
+Revoked
+Performance Peak Media LLC
+07/21/2025 - 07/21/2026
+Revoked
+Unified Market Group LLC
+07/23/2025 - 07/23/2026
+Valid (As of this writing)
+Abused certificates validity and status information
+
+Execution chain overview
+While the delivery stages mirror earlier reports, this variant stands out because it relies on a scheduled task seeded by a dropped task.xml for persistence and uses a structurally different, heavily obfuscated JavaScript backdoor.
+
+Figure 6. Observed execution chain from Acronis telemetry
+ 
+
+INITIAL ACCESS
+In our investigation, the installers are distributed via malvertising combined with SEO manipulation. Google ads and crafted landing pages are optimized for common search queries related to the fake applications. This technique ensures that unsuspecting victims searching for common and generic tools used in everyday tasks will land on the fake website and download one of the tools that can retrieve a malicious payload at a later time.
+
+Example of a malicious URL for downloading fake application
+ The download URL shown above, taken from one of the samples, automatically retrieves the fake application, which strongly indicates malvertising activity. The parameters confirm that the attacker targets users looking for free software or product manuals.
+
+EXECUTION
+When the fake application is executed, it displays a license agreement window just like a normal application would do in its installation process.
+
+Figure 7. License agreement window prior to installation
+During installation, the task.xml file is placed either in the installer's temporary directory or in the program installation directory. This XML file is used by the installer to create a scheduled task, enabling persistence on the system.
+
+Figure 8. Installed fake application
+After installation completes, the installer opens a browser tab to display a “thank you for installing” message, which adds more illusion that the software installed is legitimate.
+
+Figure 9. Thank you message after installation
+PERSISTENCE
+In previous campaigns, the authors relied on registry autoruns, making a copy of the binary in the startup folder and creating a scheduled task. This new variant uses only a scheduled task for persistence by using a dropped XML file named “task.xml”. The task name observed from the earlier version of the campaign employs a GUID-like string while the latest versions adopted a more generic label name.
+
+Scheduled task command from the latest variants of the campaign
+Figure 10. Task.xml file used as configuration for the scheduled task
+This snippet of the task.xml file contains the configuration for the created scheduled task of the fake application. The scheduled task is configured to run a JavaScript located in %APPDATA%\Programs\[Name of Installed Fake Application] directory. The task executes immediately after creation, then repeats every 24 hours with a random delay of up to 30 minutes to ensure consistent and automated JavaScript payload execution. Its configuration also allows extended runtimes, blocks multiple simultaneous instances and automatically runs any missed schedules.
+
+Abusing scheduled tasks with delayed updates allows attackers to quietly maintain foothold on the infected system and control when their malicious payloads are executed. By delaying activity, they can evade initial detection and blend in with normal system processes.
+
+COMMAND AND CONTROL
+We identified two related JavaScript payload variants that function as backdoors but differ in code structure. Both are heavily obfuscated, making static analysis significantly more difficult.
+
+Figure 11. Heavily obfuscated JavaScript payload
+ The JavaScript payload is obfuscated with an open-source JavaScript obfuscator from obfuscator.io. The tool applies multiple obfuscation techniques, including string and function renaming, control flow flattening and dead code injection. Its effectiveness at concealing malicious logic makes it likely that more JavaScript-based malware will adopt it to hinder analysis. A recent in-the-wild example of this behavior was documented in our earlier research, "Threat actors go gaming: Electron-based stealers in disguise".
+
+We partially deobfuscated the JavaScript sample using an open source deobfuscator. Depending on the obfuscator.io settings, the tool can recover some or all of an obfuscated script.
+
+
+
+Figure 12. Snippet of deobfuscated JavaScript payloads (First image: Sample 1, Second image: Sample 2)
+
+Using the available deobfuscator, we partially recovered both samples. Variable and function names remain largely unreadable, and the second sample still appears more heavily obfuscated than the first. However, parts of each script are now readable.
+
+
+
+Figure 13. Snippet of the logging function (First image: Sample 1, Second image: Sample 2)
+
+Both JavaScript samples suppress debug messages, likely to hinder analysis, and write the console output to a log file.
+
+
+
+Figure 14. Snippet of the registry operations and querying for machine ID (First image: Sample 1, Second image: Sample 2)
+
+The sample reads and writes Windows registry keys using different system calls, then generates a machine ID used to fingerprint and identify the device.
+
+
+
+Figure 15. Snippet of C2 communication (First image: Sample 1, Second image 2: Sample 2, Third image: A closer look at Sample 1, Fourth image: A closer look at Sample 2.)
+
+Both also have a hard-coded C2 server for sending a JSON object from the victim that contains the event name, session ID, machine ID and other metadata. The JSON is encrypted by XORing with a random 16-byte key which is prepended before encoding it with base64 then transporting it over HTTPS.
+
+
+
+Figure 16. Snippet of code / command execution (First image: Sample 1, Second image: Sample 2)
+
+Finally, both samples have the capability of remote code execution.
+
+Pivoting for similar samples
+During our research, we noticed a significant number of samples communicating with the following domains:
+
+api[.]mxpanel[.]com
+api[.]mixpnl[.]com
+Pivoting from these domains revealed a broader network of malicious samples linked to the same campaign, many of which are signed by new shell companies not seen in the earlier set. The newly identified signers include:
+
+Stratus Core Digital, LLC
+DataX Engine LLC
+Nova Sphere Systems LLC
+Internet Share Media LLC
+Digital Concept Media
+Samples signed by these companies follow the same pattern, mimicking legitimate applications and using an identical execution chain.
+
+Figure 17. Fake application contacting api[.]mxpanel[.]com
+Figure 18. Fake application contacting api[.]mixpnl[.]com
+Motivation and impact
+While little is known about the motivation or the actors behind the campaign, several possible scenarios can be outlined:
+
+Financial gain via initial access
+The presence of a remote code–capable backdoor strongly suggests that the attackers aim to establish footholds that can later be monetized. Such access can be sold to other criminal groups as part of an initial access brokerage model or used directly to deploy additional payloads. This approach aligns with broader underground economies in which compromised endpoints are traded or rented to facilitate further operations.
+
+Credential and data theft for monetization
+The campaign’s noticeable impact on health care organizations implies that stolen credentials, patient data and proprietary information could have significant resale value. Attackers may exfiltrate sensitive records and monetize them through dark web marketplaces or use the data to enable secondary fraud schemes. Even limited access to patient or device information could yield substantial profit margins compared to the relatively low operational cost of the campaign.
+
+Ransomware staging
+Maintaining persistent access through scheduled tasks and remote execution capabilities provides the groundwork for future ransomware attacks. Once sufficient systems are compromised, operators or their affiliates could deploy ransomware to maximize financial return. This “two-phase” model — initial infiltration followed by delayed monetization — has become increasingly common in financially motivated threat ecosystems.
+
+Opportunistic espionage
+Although the campaign’s distribution appears indiscriminate, opportunistic access to high-value environments cannot be ruled out. If the attackers discover systems belonging to government agencies, research institutions or strategic industries, they may choose to harvest intelligence or sell access to more sophisticated actors.
+
+Conclusion
+Looking at the timeline, the attackers started with longer-term certificates and domain-generated C2 servers. The three-year validity of the certificates gave the fake applications a longer “legitimacy” lifespan. However, once several of these were revoked, the actor shifted tactics by mid-2025, issuing only short-lived certificates that are easier to replace once flagged. It also appears that certificates appear slightly earlier compared to the first visible C2 server.  
+
+This activity shares the same pattern with our investigation where there is a significant time difference between the execution and installation of the fake application and the connection to the C2 server. The C2 server also follows the same trajectory. The earliest C2 servers used random-looking strings that resemble domain generation algorithms (DGA). By mid to late 2025, the C2 servers changed to human-readable names. In summary, this shift in tactics shows how the operator(s) continues to adapt to the security measures placed.
+
+Recommendations for defenders
+TamperedChef illustrates a critical security lesson: Even software bearing valid digital signatures can be malicious. Attackers can exploit the inherent trust that users place in signed applications to distribute stealthy malware, bypass traditional defenses and gain persistence on systems. This underscores that digital signatures alone are not a guarantee of safety, and organizations must implement additional layers of security, vigilance and user awareness to detect and mitigate threats effectively.
+
+Integrate MDR or 24/7 threat monitoring: MDR services provide continuous monitoring, threat hunting and incident response support across all managed tenants. Shared telemetry (EDR + MDR) improves early detection of anomalous script execution, persistence mechanisms and certificate abuse.
+Restrict installation rights and only distribute software that has been internally vetted or sourced directly from known vendors.
+Maintain up-to-date systems and protections: Ensure endpoints have the latest OS patches and that antivirus definitions are up to date.
+Educate end users: Provide training to identify malvertising and fake download pages, emphasizing that installers should only be obtained from verified vendor sources.
+Detection by Acronis
+This threat has been detected and blocked by Acronis EDR / XDR:
+
+Figure 19. Detection by Acronis
+MITRE TTPs
+Tactics
+Techniques
+Procedures
+Initial Access
+T1189 – Drive-by Compromise
+Operators used malicious advertisements to lure users into downloading the fake applications.
+Execution
+T1204.002 – User Execution: Malicious File
+The campaign relies on the user installing the fake application.
+T1059.007 – Command and Scripting Interpreter: JavaScript
+The fake application deploys a JavaScript payload as backdoor.
+Persistence
+T1053.005 – Scheduled Task/Job: Scheduled Task
+Persistence is done by creating a scheduled task and a task.xml file for configuration.
+Defense Evasion
+T1036.001 – Masquerading: Invalid Code Signature
+The downloaded fake application utilizes digital signature to increase “legitimacy” of the application.
+T1027 – Obfuscated Files or Information
+The JavaScript payload is heavily obfuscated.
+Discovery
+T1012 – Query Registry
+The payload performs registry query to look for the victim's machine ID.
+Command and Control
+T1071.001 – Application Layer Protocol: Web Protocols
+It uses HTTP/S to communicate with the C2 server.
+T1132.001 – Data Encoding: Standard Encoding
+The JSON payload is encoded with base63 encoding.
+YARA Rules
+import "pe"
+
+ 
+
+rule TamperedChef_Installers
+
+{
+
+  meta:
+
+    description = "Detect fake application installers related to the Tampered Chef Campaign"
+
+    version = "1"
+
+ 
+
+  strings:
+
+    // hex
+
+    $a1 = {8D 55 EC B9 04 00 00 00 8B C7 E8 BA EC FF FF 8D 45 F8 33 C9 8B 55 EC E8 6D AF F6 FF 83 7D EC 00 74 14 8D 45 F8 E8 DF AC F6 FF 8B D0 8B 4D EC 8B C7 E8 93 EC FF FF 8B C6 8B 55 F8 E8 B9 AB F6 FF 83 C6 04 4B 75 BA}
+
+    $a2 = {8D 45 ?8 50 [0-4] 6A 00 6A 00 6A 00 6A 00 6A 00 6A 00 8B 45 FC E8 33 8F F6 FF 50 6A 00 E8 13 F7 F6 FF 85 C0}
+
+    $a3 = {8B 45 CC 8D 4D D0 BA DC 8A ?? 00 E8 88 32 FF FF 8B 45 D0 50 8D 55 C8 A1 04 42 ?? 00 E8 0F 32 FF FF}
+
+   
+
+    // strings
+
+    $b1 = "1.0.0" wide
+
+    $b2 = "CompanyName" wide
+
+    $b3 = "Inno Setup" ascii wide
+
+    $b4 = ".tmp" ascii wide
+
+ 
+
+  condition:
+
+    pe.is_pe
+
+    and pe.number_of_sections > 10
+
+    and pe.number_of_signatures > 0
+
+    and for any i in (00 .. pe.number_of_signatures):
+
+    (
+
+        pe.signatures[i].issuer contains "Sectigo"
+
+    )
+
+    and filesize > 18MB
+
+    and all of them
+
+}
+
+Indicators of compromise
+SHA256
+Description
+a16ecfcf5e6d7742f0e642309c3a0bf84eaf21962e663ce728f44c93ee70a28e
+AllManualsReader_oc.exe
+05d9f4426ad77fcf73a357a4f5ca1d0cf9ceccf44117c1bc829afb79a2f8671b
+MasterChess_oc.exe
+0abd1e39e17fa99366c8f1cc9171730867b6e86f6362b0492a090170f0305e55
+manualreaderpro.exe
+8ecd3c8c126be7128bf654456d171284f03e4f212c27e1b33f875b8907a7bc65
+JustAskJacky.exe
+94dc4138bfabf6a3e7cefffc5f5062fe0ac31384bae4ad78f27557ddb29f6eae 
+TotalUserManuals.exe
+0bf92be9bb3989d78ce9f345df190a543eb984cc5479928399b4610d5d94c41f
+anyproductmanual.exe
+035e7dd115afc47704db586a61aa9c189cde7228e752e0491352930f20d97dcc
+OpenMyManual.exe
+091d3bf2f0f6dc08b23151b5acd7cf53217d1ed2812e507d96dc467d9d3092d6
+SnakeAttack.exe
+0b90c3ef5bc8918c334638f2f11100a992fafbca7e16934652b70f3b2579131b
+UserManualWizard.exe
+113b23c062229aa57dfef68631f85f615e61673024b73cb9c0f5269b712610fa
+quickmanualreader.exe
+14577f1a8d5ea9f5f255b456f0f69fe4e3a1cba82d707de28b3ca25410393c17
+gocookmate.exe
+1fc4819fcf2522622fd846bf4abcd03ae02adf41366b9911fe7bb30f2a4dc4b7
+sudokufunspot.exe
+218a3a2e60779c4b4f1c83467f93d7b5c405b9acb799b4b2cdaacb7b26cd48a1
+RocketPDFPro.exe
+2355ee5283fe7171d5d74302eb7f4e371e2e76c52eb3f07ff3a954a854ae8e4e
+Backgammon.exe
+25575ffd50528952865b2b1df354461148474606c1adc68c0f140e3dcab10362
+FallingCubes.exe
+30d21ea26917366654f606a8577b430cafe03654432cc97598fad30d16157e2c
+sudokufunzone.exe 
+315c2c6654cc4a29597ffc2c5694e38385e67b3f8b149960874a539836c5773d
+viewmanual.exe
+3697f763980e594c83d708b43c410f753134e83baf33f822bba36133e0b1eafc
+TurboFixPDF.exe
+3731b729ffc4aaa42bacb56e0340e29d3b0cb5d14f287bc281ecb716eba0d8d1
+PDFPerfection.exe
+3c34ec7e666c853465058b96421c018d93e532350547a90a6f68c7db5414a4b1
+crosswordfunzone.exe
+3c51ca74e721e5e177c5a8495131d7a65ea6733ea8e8875ba3e1ce0270a136b7
+EffortlessPDF.exe
+3cccbe2e524cb458ea48c108e36efabbf36c76cf30c80b64f52acf8b7b113de9
+Getmanualviewer.exe
+4967262d1b136bb77be89a2e15c732a9edcc0377b6aaa88a6abecf5a4f8b9215
+mapmypackage.exe
+512735bb19571707ab484cdfdb2cba74f5a8fdd9e415a8ea8ccf5c1f326f9a4e
+PDFPerfection.exe
+52d234e085c8bf67fa9d338cc5621f17d4ebe166f180896185e5f28c2655c811
+AllManualsReader_2.exe
+6ea919c991b29ac78d80b9b6080c380a3e53813e1a2b0c3e576763a3ec22ef05
+GetAllManuals.exe
+71273af47ee2792b68320054ebf44d2dfe4cbe7825c0aedc5a9b65abb5744851
+AskBettyHow.exe
+7364b8cefd46a8ff918df679066fb8041b98a3e57a09f782ad6f8757fabf56cd
+Checkers.exe
+7fe170dc2ca9f333a177d7d2a5f6fee9e674164e7b46b2c2590c49be1aa9fe05
+solitairefunzone.exe
+82c452855e3d41cb1a3396e8e1aed7e26812f127ef31c93a8f375e1acb458ff5
+Minesweeper.exe
+8fb8d1df307f58db070eb5aa82a3ef3a41512d2aa73278d574ab32e55123488a
+AllManualsReader.exe
+94fbb9cc3af0d9ec25d415e35ec65491d6182e452265c854e125cfd94227a53d
+ClassicMinesweeper.exe
+9a77a653ed5c2ec0f9c00019ef6a5cf6153335fcb636c5e56edc3ccd7ad12cd2
+Crossword.exe
+9f5538afb90dfb0eac126808868a65403a09758b63e3688ef17df1de27782813
+UltimateSudoku.exe
+9f948215b9ee7e7496ce3bc9e46fda56b50cc8905b88535225c7651007f660d5
+OpenMyManual.exe
+9fb1dc56a042e6eca786f3aaa7b21d148dfb8276f6cc2cdb867408b20117f547
+Checkers.exe
+a0dae9b551026295575dcf4b1f668069b8fe8119458e792e8293299a74e79436
+OpenMyManual.exe
+a16cbf9ab535d4ad628b583ec3e026799f38bb50b98c495333302f7b804390ea
+OpenMyManual.exe
+a5187cbb42b0e0dfb747c8fe86638dc68be9915ec112f7f6f72c8f3735489c76
+MasterChess.exe
+a7fbbb0393e36bc70b6eafb967a3b11a65c442090da1840364886b984784135c
+ClassicSudoku_oc.exe
+b850b218d5cc4cc9c1006399c26cc5ca3f9e2da3a70296fceb6760d1f0dcdf90
+Solitaire.exe
+c391b1e00a8fcc120605a6e0c4e26c5ec9624b8e194460d34ae0d26efd147847
+manualreaderpro.exe
+cac499fe09d2640e376c6e6f45d5d287c75faf94d8ba26290016a815a8b4c5b4
+Solitaire_oc.exe
+d70bc73a61252d5d9fde5593670fa790e4e9611838fd6c74f2b9cab97a5cea0f
+playcrosswordnow.exe
+d792bc4896854d30b1ea4b2120ec39c4987b4d63802ee0775314f269f138e7f7
+classic8ball.exe
+d799cc1713932e9748ec9d293f831d150e1e345c0e58279cd7c3e49c35e667be
+TurboFixPDF.exe 
+d9a0d3f05ed8efd475f7b76ca3d4ad7d136b274979d2a0abb6ca26d1a2e98512
+FallingCubes.exe
+db0d90d825db484a146ebc43408c8e722b676616c32d84684bc94ddc8b92e893
+EffortlessPDF.exe
+db62ac71ac17a2f8e3d19b4f093ff1226d5de7fa323dd4564fb0dbb37ae8a364
+playcandybreaker.exe
+dfa5785c13a739fb2fae72f405984eef89dc7bf3dd94137692e96826113d51e0
+PDFMagician.exe
+e18e59723949ad0a2791e95d4c0ffd7657929e8dc6a0d718598b3aec962f73c2
+themanualshelf.exe
+e340e41da2779a714c2c0590955ade6dc35b3c9246bde5cca8e1cab1b937593c
+PDFMagician.exe
+ef4b57bad0d28a65333691e1c27787690d58516a79f9cf2fbe840d69401a1932
+AllManualsReader_oc.exe
+ef9621f7fe04fd053e58af7d5863780defd1d2948c131d7df3f76bdb46932688
+SpeedyPDFHub.exe
+f81b533757f4603f2eae935b8b9f466b2c2e3563f44bd40711afbf8980f45eb2
+OpenMyManual.exe
+fccf2c72054e9aa8e5a134854e573b23316a6622631f818695d9c0eb3ca3f1a7
+Minesweeper.exe
+80f90b9e563e1cfe981a9faf24c9430198bb15916a2dc5e75d14227a8fab9cb6
+Task.xml
+bdafb81fa5a41728d578b0682a6e7f9095250161558431184093acc3641573fa
+Task.xml
+1925e877ce6492a7d1293f3f6f4dcbc70ca3c74bbf42ae2ba80e1b5a2e0925d1
+Task.xml
+c3a2a5b7d8e4bd8fb571a8104170d930647fa73babcfc414adcdef76fb1a57c4
+Task.xml
+073bd7acf920d7c90fc130213a43b46e5e082e86e1506309c5818df1b4df2a97
+Task.xml
+3075a2f60611fcfc763059f95f5577999d5bbc39dd33aa9b5b8bc8219c6f2ae4
+Task.xml
+19d61d0a67207debfb21af2bf8774e010796e5d41f986848d63169c68cc7fa86
+Task.xml
+06555b8bf3bdf36bf36b4e6a4f5298da732207867c57961a1cb14a14f845e25f
+Task.xml
+3cfd405d7e7f3d7af3d9be6387828fc14d6c24be6ea0651e18a8a63f1cd164cb
+Task.xml
+335a7383867b0da0731968363956d6f31116460b1f9060d0e8c79ff735211733
+Task.xml 
+5c8f276286c2b588fb15b72e8b20c051ae84ed26d93187eaea41b3ba8faa8954
+Task.xml 
+d2fbaa89cc5e4e03ecdf7ccfc28fd13230643bfb41a3619fbec64076a2b56a7c
+Task.xml 
+4d2bb8c9d995d52dd2ef763af7158bd8f7ff6a59c4004ea38ff0eef684c78381
+Task.xml 
+3826e54318e80e8942bd9b8ab347f560d5dd9741276fec5a26d3eee862516767
+Task.xml 
+1d2027b35978be2a92f27203941f51d9352d56f3cf83f131f9824a7f0891a692
+Task.xml 
+33fb19d5d9c0ca8bea177722807560005c4c2a0533ce3356efdcefc6e93cebff
+Task.xml 
+ca96040d8899196ff02592a4c01b595a191f4dd89d4d11be8703645019871d33
+Task.xml 
+6c0178a70759eadeb6f88a2c6bc4a217f1aba2ebdadd132610fe86d3994c2a66
+Task.xml 
+e7a1d74883e220d92ef024301850c1d56f95bb07fd72e82f4c644b940576d866
+Task.xml 
+e498e98578ec27b680fff36768852fa00eea90e4f2de4cdae269a2d523624e36
+Task.xml 
+c0bab2e5718056617a4e6965ba8f8babf04adfb11602301223004e3b786bb779
+Task.xml 
+b8ec6dca18acb873bf8bf55bc3614df0aaed333638d79fda075f03661d8a5662
+Task.xml 
+760663fd61c55f112186151721425857a485ec6a1db1b2cb8b41bba9ed40af1e
+Task.xml 
+9b21cb18aafa50339563af4ae211688846bcb030d43644e251da9d0bad2c9072
+Task.xml 
+21b8c5dabbe910a4c1ada58534e01580eb600a1ab0b8f105e5f8609bdc7f6c42
+JavaScript Payload
+467876a203eb2c2b01b2d58f1e00271cb6bb75834af08a67e2c69fa0e4788ea5
+JavaScript Payload
+167359b715610003752cbc89b122a6df97e501304cb4a1ee94a6e75ebf51d6d6
+JavaScript Payload 
+dd8502622eaa4e3798f4848cfe81c06ed0dffd7cb0a62c7ab6c7124d5b07bb04
+JavaScript Payload
+bcc9ebce78fdbb1271ff1a2e0def82ec87d6e964a18293e82ec0cdd12856e66b
+JavaScript Payload  
+d7f2a620429bf104f593ef789aaef0b25afa90b81b5d2285c54eac47dee52aac
+JavaScript Payload
+d1e85806e7013aa984356dbce28972f11be4860ab4152cd5510dff3388a89b45
+JavaScript Payload 
+f0532759ccaa0ea7f0ec8ec3225eb0e6d87cc3ddd1361967f4ea487bff4394bb
+JavaScript Payload 
+9b8bc1df9b891a166de9aefc58fe2ae04fb238f97aa90405617ff9e7501c99a8
+JavaScript Payload 
+d8c2f9f843cb7764d138c5cb74a4a887eadcdfc5af0ab7df805af6f40fe27dc1
+JavaScript Payload 
+483657b8b1f3b81540d05842331bc3a564f77f22017ee5abeeffc0e832efcf6f
+JavaScript Payload 
+51d876d638a6155572f8cbd42cdd8ae61c84b1816438bc53eb40534f7a92bb69
+JavaScript Payload 
+0ad487d3bd904ade98b505bdd891d1a19665159b0e579696ac0b6a82e9f80617
+JavaScript Payload 
+16e9cf18961ed32613c69d5d4c0f54eb0f051e40a431121bc8fe6de9b3f64b01
+JavaScript Payload 
+1a58c5b8b79f3ed90d43b4d117b01eb32e27b8235d9b3ceda4803a57e6250596
+JavaScript Payload 
+2cd68ea7f02e8cfaded52d64c2cb71b64560b3799c948960db37e827618ff22d
+JavaScript Payload 
+822f5dcfe7350d259594d92128ba9fc2b7620aa33b571d8af8a87945d8909026
+JavaScript Payload 
+de101b0a881d69ab314e0863845e5f0e62c749eea87a704ecbb3bccb5c0bb1ac
+JavaScript Payload 
+5a0e37f70f9ce00ba40edfb4e6d11e87ea6bd0edecf6f604029ef98aa2bd33e9
+JavaScript Payload 
+1e1cbfe91aa9be47480df265f6b5a0fed2f99116bcaa5e6e98689e3498616f84
+JavaScript Payload 
+e80291d2827a0abd4ed1c761eaf396f70fe91ce50bdef828e135a8e482af19c3
+JavaScript Payload 
+a67cd1ea41484edfca83f53c1f1c8d21717335e8cff2a00dce1c79ff5b48cb2a
+JavaScript Payload 
+840b1e76961836f3af79bf4d0a68d426c764587173a8f308d3e6012393c6a9f8
+JavaScript Payload 
+3466810f091a29be4380a634e3aa3f0bafef0b36041abf9ba90a72b4085433d3
+JavaScript Payload 
+ 
+
+ 
+
+URL/Domain
+Description
+hxxps://download[.]allmanualsreader[.]com/AllManualsReader_oc[.]exe
+Download URL
+hxps://download[.]playthechess[.]com/d/MasterChess_oc[.]exe
+Download URL
+hxxps://download[.]manualreaderpro[.]com/d/manualreaderpro[.]exe
+Download URL
+hxxps://download[.]justaskjacky[.]com/d/justaskjacky[.]exe
+Download URL
+hxxps://download[.]totalusermanuals[.]com/totalusermanuals[.]exe
+Download URL
+hxxps://download[.]anyproductmanual[.]com/anyproductmanual[.]exe
+Download URL
+hxxp://effortlesspdf[.]com/EffortlessPDF[.]exe
+Download URL 
+hxxps://getmanualviewer[.]com/getmanualviewer[.]exe
+Download URL 
+hxxps://getallmanuals[.]com/GetAllManuals[.]exe
+Download URL 
+hxxps://download[.]askbexxyhow[.]com/d/AskBexxyHow[.]exe
+Download URL 
+hxxp://download[.]playthecheckers[.]com/d/Checkers[.]exe
+Download URL 
+hxxp://download[.]playtheminesweeper[.]com/d/Minesweeper[.]exe
+Download URL 
+hxxps://download[.]playclassicminesweeper[.]com/ClassicMinesweeper[.]exe
+Download URL 
+hxxps://download[.]startplayingcrossword[.]com/Crossword[.]exe
+Download URL 
+hxxps://download[.]openmymanual[.]com/OpenMyManual[.]exe
+Download URL 
+hxxps://download[.]playclassicsudoku[.]com/ClassicSudoku_oc[.]exe
+Download URL 
+hxxp://download[.]playthesolitaire[.]com/d/Solitare[.]exe
+Download URL 
+hxxps://download[.]classic8ball[.]com/d/classic8ball[.]exe
+Download URL 
+hxxps://download[.]playclassicfallingblocks[.]com/d/FallingCubes[.]exe
+Download URL 
+hxxps://download[.]themanualshelf[.]com/d/themanualshelf[.]exe
+Download URL 
+hxxps://speedypdfhub[.]com/SpeedyPDFHub[.]exe
+Download URL 
+hxxps://download[.]playclassicsnake[.]com/d/SnakeAxxack[.]exe
+Download URL 
+hxxps://download[.]quickmanualreader[.]com/d/quickmanualreader[.]exe
+Download URL
+hxxps://download[.]gocookmate[.]com/d/gocookmate[.]exe
+Download URL 
+hxxps://download[.]sudokufunspot[.]com/sudokufunspot[.]exe
+Download URL 
+hxxps://rocketpdfpro[.]com/RocketPDFPro[.]exe
+Download URL 
+hxxps://get[.]usermanualsonline[.]com/viewmanual[.]exe
+Download URL 
+api[.]78kwijczjz0mcig0f0[.]com
+C2 Server
+api[.]zxg4jy1ssoynji24po[.]com
+C2 Server
+api[.]pyej17uw09d1bqlndg[.]com
+C2 Server
+api[.]cjby76nlcynrc4jvrb[.]com
+C2 Server
+api[.]vtqgo0729ilnmyxs9q[.]com
+C2 Server
+get[.]latest-manuals[.]com
+C2 Server
+app[.]catalogreference[.]com
+C2 Server
+api[.]85etpt40zf7ht4yd1u[.]com
+C2 Server
+api[.]ana43c4ajq1o10642i[.]com
+C2 Server
+api[.]sey3p6htm1ays1iy54[.]com
+C2 Server
+api[.]k2ioeasm874fnacr9x[.]com
+C2 Server
+api[.]kdtskq5kw4cwqvauxy[.]com
+C2 Server
+api[.]phpjzo16ok6qvpvcrz[.]com
+C2 Server
+api[.]vgp4filwmg5ogq58xy[.]com
+C2 Server
+api[.]rmr6qd1zy9hyafyzk2[.]com
+C2 Server
+api[.]42a2hudcuvftqlmit2[.]com
+C2 Server
+api[.]uode7wkkvojxsfpom0[.]com
+C2 Server
+api[.]bftdtfky0i2gewg6ki[.]com
+C2 Server
+api[.]h06bwr0wg9iyy8ygl0[.]com
+C2 Server
+api[.]npfk87zidodfqsfqxd[.]com
+C2 Server
+api[.]ka4f064txqusqf1ecb[.]com
+C2 Server
+api[.]e8b7xa22r6pevc1lmu[.]com
+C2 Server
+api[.]7trellca1rt257t2wa[.]com
+C2 Server
+api[.]meg7xqos0m7h9urhr0[.]com
+C2 Server
+api[.]rxpfo7bgftr5gjq99u[.]com
+C2 Server
+api[.]00isgy77i9fqrn9rmu[.]com
+C2 Server
+api[.]slkzkcpz5xf8nplyb6[.]com
+C2 Server
+api[.]opfktvbbb0d5pphzlc[.]com
+C2 Server
+api[.]1f8tlqv4bfa75qaxl7[.]com
+C2 Server
+api[.]d1iwuj0s7os571e3a4[.]com
+C2 Server
+api[.]1r2htpstv0jyv4gr3j[.]com
+C2 Server
+Share
+twitter
+facebook
+linkedin
+reddit
+More cyber threats insights
+November 25, 2025 — 24 min read
+Acronis
+Fake adult websites pop realistic Windows Update screen...
+Acronis TRU researchers have discovered an ongoing campaign that leverages a novel combination of...
+November 18, 2025 — 3 min read
+Acronis
+Acronis Cyberthreats Update, November 2025
+The Acronis Cyberthreats Update covers current cyberthreat activity and trends, as observed by Acronis...
+November 10, 2025 — 3 min read
+Acronis
+MSP cybersecurity news digest November 10, 2025
+Must-know cybersecurity news for MSPs: GlassWorm, ClickFix, Gootloader and the dangerous new era of...
+November 10, 2025 — 22 min read
+Acronis
+Acronis TRU Alliance {VirusTotal}: Tracking FileFix,...
+Introducing the Acronis TRU Alliance Series. This new series highlights collaborative research...
+Engage with TRU Security (RSS Feed Reader required)
+cpoc
+Legal information
+Privacy policy
+Acronis Cookie Notice
+Notice of collection
+© 2003–2025 Acronis International GmbH.
